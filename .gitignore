@@ -1,0 +1,8 @@
+bin/
+coverage.out
+*.exe
+.DS_Store
+.env
+.vscode/
+.analysis/
+tests.*.md
