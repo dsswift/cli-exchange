@@ -312,7 +312,8 @@ Use the `exchange` CLI for all Exchange Online operations (mail, calendar, avail
 - `--sender` takes email alias or address (`cfavero`, `wwoller`), not full names
 - All filters combine freely: `--sender`, `--subject`, `--unread`, `--read`, `--has-attachments`, `--start`, `--end`
 - Full email body: `mail show --ids <id>`
-- Download attachments: `mail show --ids <id>` to get attachment IDs, then `mail attachment download --message-id <id> --id <att-id> --dir /tmp`
+- Read attachment contents: `mail attachment list --message-id <id> --include-content` (returns text inline)
+- Download attachments to disk: `mail show --ids <id>` to get attachment IDs, then `mail attachment download --message-id <id> --id <att-id> --dir /tmp`
 
 ## Development
 
