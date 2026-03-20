@@ -44,10 +44,17 @@ func cmdLogin(f flags) int {
 		return 1
 	}
 
-	token, err := authenticator.GetAccessToken(context.Background())
+	ctx := context.Background()
+	token, err := authenticator.GetAccessToken(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		return 1
+	}
+
+	// Persist user email from MSAL cached account
+	if email, err := authenticator.GetUserEmail(ctx); err == nil && email != "" {
+		cfg.UserEmail = email
+		_ = config.SaveConfig(cfg)
 	}
 
 	if f.output == "table" {

@@ -332,6 +332,32 @@ var commands = map[string]CommandHelp{
 			"exchange config alias delete dcim.com",
 		},
 	},
+	"config-allow-sender-list": {
+		Name:        "config allow-sender list",
+		Description: "List allowed send recipients",
+		Examples:    []string{"exchange config allow-sender list"},
+	},
+	"config-allow-sender-add": {
+		Name:        "config allow-sender add",
+		Description: "Add an allowed send recipient",
+		Positional: []FlagHelp{
+			{Name: "<email>", Type: "string", Required: true, Description: "Email entry (supports pipe syntax: user@domain1|domain2)"},
+		},
+		Examples: []string{
+			"exchange config allow-sender add someone@example.com",
+			"exchange config allow-sender add 'cfavero@dcim.com|dciartform.com'",
+		},
+	},
+	"config-allow-sender-delete": {
+		Name:        "config allow-sender delete",
+		Description: "Remove an allowed send recipient",
+		Positional: []FlagHelp{
+			{Name: "<email>", Type: "string", Required: true, Description: "Exact entry to remove"},
+		},
+		Examples: []string{
+			"exchange config allow-sender delete someone@example.com",
+		},
+	},
 }
 
 var groups = map[string]GroupHelp{
@@ -373,12 +399,17 @@ var groups = map[string]GroupHelp{
 	"config": {
 		Name:        "config",
 		Description: "Configuration operations",
-		Commands:    []string{"config-show", "config-set", "config-alias-list", "config-alias-add", "config-alias-delete"},
+		Commands:    []string{"config-show", "config-set", "config-alias-list", "config-alias-add", "config-alias-delete", "config-allow-sender-list", "config-allow-sender-add", "config-allow-sender-delete"},
 	},
 	"config-alias": {
 		Name:        "config alias",
 		Description: "Domain alias operations",
 		Commands:    []string{"config-alias-list", "config-alias-add", "config-alias-delete"},
+	},
+	"config-allow-sender": {
+		Name:        "config allow-sender",
+		Description: "Send recipient whitelist operations",
+		Commands:    []string{"config-allow-sender-list", "config-allow-sender-add", "config-allow-sender-delete"},
 	},
 	"session": {
 		Name:        "session",
@@ -508,6 +539,10 @@ Config Commands:
   config alias add <domain> <aliases> Add domain alias (pipe-separated)
   config alias delete <domain>       Delete domain alias
 
+  config allow-sender list           List allowed send recipients
+  config allow-sender add <email>    Add allowed send recipient
+  config allow-sender delete <email> Remove allowed send recipient
+
 Global Options:
   -o, --output <format>              Output format: json, table (default: json)
   --timezone <tz>                    Override timezone (e.g. America/New_York)
@@ -614,7 +649,7 @@ type helpJSON struct {
 
 func printHelpJSON(version string) {
 	// Build ordered group list
-	groupOrder := []string{"session", "mail", "mail-draft", "mail-folder", "mail-attachment", "calendar", "calendar-event", "calendar-availability", "config", "config-alias"}
+	groupOrder := []string{"session", "mail", "mail-draft", "mail-folder", "mail-attachment", "calendar", "calendar-event", "calendar-availability", "config", "config-alias", "config-allow-sender"}
 	var groupList []GroupHelp
 	for _, key := range groupOrder {
 		if g, ok := groups[key]; ok {
@@ -628,6 +663,7 @@ func printHelpJSON(version string) {
 		"mail-list", "mail-show", "mail-send", "mail-archive", "mail-delete", "mail-draft-create", "mail-draft-send", "mail-draft-attach", "mail-folder-list", "mail-attachment-list", "mail-attachment-download",
 		"calendar-list", "calendar-event-list", "calendar-event-show", "calendar-availability-check",
 		"config-show", "config-set", "config-alias-list", "config-alias-add", "config-alias-delete",
+		"config-allow-sender-list", "config-allow-sender-add", "config-allow-sender-delete",
 	}
 	var cmdList []CommandHelp
 	for _, key := range cmdOrder {

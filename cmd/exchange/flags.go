@@ -151,6 +151,17 @@ func parseFlags(args []string) (flags, error) {
 			}
 			f.command = "config-alias-" + args[2]
 			i = 3
+		} else if args[1] == "allow-sender" {
+			if len(args) < 3 {
+				return f, fmt.Errorf("config allow-sender requires a verb")
+			}
+			if args[2] == "--help" {
+				f.command = "config-allow-sender"
+				f.help = true
+				return f, nil
+			}
+			f.command = "config-allow-sender-" + args[2]
+			i = 3
 		} else {
 			f.command = "config-" + args[1]
 			i = 2

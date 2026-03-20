@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"mime"
@@ -399,9 +400,30 @@ func cmdMailDraftCreate(f flags) int {
 	return 0
 }
 
+func loadSendConfig(f flags) *config.ExchangeConfig {
+	cfg := config.LoadConfigPartial(configOverrides(f))
+
+	// Fallback: resolve user email from MSAL cache if not persisted
+	if cfg.UserEmail == "" {
+		if authenticator, err := newAuthenticator(cfg); err == nil {
+			if email, err := authenticator.GetUserEmail(context.Background()); err == nil {
+				cfg.UserEmail = email
+			}
+		}
+	}
+	return cfg
+}
+
 func cmdMailSend(f flags) int {
 	if len(f.to) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: --to is required\n")
+		return 1
+	}
+
+	cfg := loadSendConfig(f)
+	allRecipients := append(f.to, f.cc...)
+	if err := cfg.ValidateSendRecipients(allRecipients); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		return 1
 	}
 
@@ -455,6 +477,25 @@ func cmdMailDraftSend(f flags) int {
 
 	client, _, err := newClient(f)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		return 1
+	}
+
+	// Fetch draft to validate recipients before sending
+	cfg := loadSendConfig(f)
+	draft, err := client.GetMessage(f.id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		return 1
+	}
+	var allRecipients []string
+	for _, r := range draft.ToRecipients {
+		allRecipients = append(allRecipients, r.EmailAddress.Address)
+	}
+	for _, r := range draft.CcRecipients {
+		allRecipients = append(allRecipients, r.EmailAddress.Address)
+	}
+	if err := cfg.ValidateSendRecipients(allRecipients); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		return 1
 	}

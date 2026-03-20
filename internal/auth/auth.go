@@ -82,6 +82,18 @@ func (a *Authenticator) GetAccessToken(ctx context.Context) (string, error) {
 	return result.AccessToken, nil
 }
 
+// GetUserEmail returns the authenticated user's email from the MSAL cached accounts.
+func (a *Authenticator) GetUserEmail(ctx context.Context) (string, error) {
+	accounts, err := a.client.Accounts(ctx)
+	if err != nil {
+		return "", fmt.Errorf("reading cached accounts: %w", err)
+	}
+	if len(accounts) == 0 {
+		return "", fmt.Errorf("no cached accounts found")
+	}
+	return accounts[0].PreferredUsername, nil
+}
+
 // ClearCache removes the persisted token cache file.
 func (a *Authenticator) ClearCache() error {
 	if err := os.Remove(a.cachePath); err != nil && !os.IsNotExist(err) {

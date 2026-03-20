@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -16,16 +17,18 @@ type BusinessHours struct {
 }
 
 type ExchangeConfig struct {
-	ClientID       string              `json:"clientId"`
-	TenantID       string              `json:"tenantId"`
-	Authority      string              `json:"-"`
-	Timezone       string              `json:"timezone,omitempty"`
-	Output         string              `json:"output,omitempty"`
-	DomainAliases   map[string][]string `json:"domainAliases,omitempty"`
-	BusinessHours   *BusinessHours      `json:"businessHours,omitempty"`
-	IncludeWeekends *bool               `json:"includeWeekends,omitempty"`
-	Timeout         time.Duration       `json:"-"`
-	TokenCachePath string              `json:"-"`
+	ClientID               string              `json:"clientId"`
+	TenantID               string              `json:"tenantId"`
+	Authority              string              `json:"-"`
+	Timezone               string              `json:"timezone,omitempty"`
+	Output                 string              `json:"output,omitempty"`
+	UserEmail              string              `json:"userEmail,omitempty"`
+	AllowSendToRecipients  []string            `json:"allowSendToRecipients,omitempty"`
+	DomainAliases          map[string][]string `json:"domainAliases,omitempty"`
+	BusinessHours          *BusinessHours      `json:"businessHours,omitempty"`
+	IncludeWeekends        *bool               `json:"includeWeekends,omitempty"`
+	Timeout                time.Duration       `json:"-"`
+	TokenCachePath         string              `json:"-"`
 }
 
 // Overrides holds values from CLI flags that take priority over all other sources.
@@ -118,16 +121,18 @@ func resolve(ov Overrides) *ExchangeConfig {
 	}
 
 	return &ExchangeConfig{
-		ClientID:       clientID,
-		TenantID:       tenantID,
-		Authority:      fmt.Sprintf("https://login.microsoftonline.com/%s", tenantID),
-		Timezone:       tz,
-		Output:         output,
-		DomainAliases:   file.DomainAliases,
-		BusinessHours:   file.BusinessHours,
-		IncludeWeekends: file.IncludeWeekends,
-		Timeout:         time.Duration(timeoutSec) * time.Second,
-		TokenCachePath: tokenCache,
+		ClientID:              clientID,
+		TenantID:              tenantID,
+		Authority:             fmt.Sprintf("https://login.microsoftonline.com/%s", tenantID),
+		Timezone:              tz,
+		Output:                output,
+		UserEmail:             file.UserEmail,
+		AllowSendToRecipients: file.AllowSendToRecipients,
+		DomainAliases:         file.DomainAliases,
+		BusinessHours:         file.BusinessHours,
+		IncludeWeekends:       file.IncludeWeekends,
+		Timeout:               time.Duration(timeoutSec) * time.Second,
+		TokenCachePath:        tokenCache,
 	}
 }
 
@@ -184,6 +189,103 @@ func (bh *BusinessHours) StartHourMinute() (int, int) {
 func (bh *BusinessHours) EndHourMinute() (int, int) {
 	h, m, _ := parseHHMM(bh.End)
 	return h, m
+}
+
+// NormalizeEmailWithAliases lowercases an email and resolves alias domains
+// to the primary domain using DomainAliases configuration.
+func (cfg *ExchangeConfig) NormalizeEmailWithAliases(email string) string {
+	email = strings.ToLower(strings.TrimSpace(email))
+	parts := strings.SplitN(email, "@", 2)
+	if len(parts) != 2 {
+		return email
+	}
+	user, domain := parts[0], parts[1]
+
+	// Build reverse lookup: alias domain -> primary domain.
+	// Sort keys for deterministic resolution when a domain appears
+	// in multiple alias groups.
+	keys := make([]string, 0, len(cfg.DomainAliases))
+	for k := range cfg.DomainAliases {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, primary := range keys {
+		for _, alias := range cfg.DomainAliases[primary] {
+			if strings.ToLower(alias) == domain {
+				return user + "@" + strings.ToLower(primary)
+			}
+		}
+	}
+	return email
+}
+
+// expandAllowedRecipients expands all AllowSendToRecipients entries using
+// pipe syntax and domain alias resolution, returning a deduplicated set of
+// normalized allowed addresses.
+func (cfg *ExchangeConfig) expandAllowedRecipients() []string {
+	seen := map[string]bool{}
+	var result []string
+
+	for _, entry := range cfg.AllowSendToRecipients {
+		entry = strings.ToLower(strings.TrimSpace(entry))
+		if !strings.Contains(entry, "@") {
+			continue
+		}
+
+		parts := strings.SplitN(entry, "@", 2)
+		user, domainPart := parts[0], parts[1]
+
+		var addrs []string
+		if strings.Contains(domainPart, "|") {
+			// Pipe syntax: user@domain1|domain2
+			domains := strings.Split(domainPart, "|")
+			for _, d := range domains {
+				addrs = append(addrs, user+"@"+d)
+			}
+		} else {
+			addrs = []string{entry}
+		}
+
+		// Normalize each expanded address via alias resolution
+		for _, addr := range addrs {
+			normalized := cfg.NormalizeEmailWithAliases(addr)
+			if !seen[normalized] {
+				seen[normalized] = true
+				result = append(result, normalized)
+			}
+		}
+	}
+	return result
+}
+
+// ValidateSendRecipients checks that all recipients are allowed by the
+// whitelist or match the authenticated user's own email. Returns an error
+// listing any blocked recipients.
+func (cfg *ExchangeConfig) ValidateSendRecipients(recipients []string) error {
+	allowed := cfg.expandAllowedRecipients()
+	allowedSet := map[string]bool{}
+	for _, a := range allowed {
+		allowedSet[a] = true
+	}
+
+	// Self is always allowed
+	if cfg.UserEmail != "" {
+		selfNorm := cfg.NormalizeEmailWithAliases(cfg.UserEmail)
+		allowedSet[selfNorm] = true
+	}
+
+	var blocked []string
+	for _, r := range recipients {
+		normalized := cfg.NormalizeEmailWithAliases(r)
+		if !allowedSet[normalized] {
+			blocked = append(blocked, r)
+		}
+	}
+
+	if len(blocked) > 0 {
+		return fmt.Errorf("send blocked: recipient(s) not in allow list: %s", strings.Join(blocked, ", "))
+	}
+	return nil
 }
 
 // first returns the first non-empty string.
