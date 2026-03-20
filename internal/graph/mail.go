@@ -61,6 +61,16 @@ func (c *GraphClient) ListMessages(opts ListMessagesOptions) ([]Message, error) 
 	}
 	params.Set("$select", selectFields)
 
+	limit := opts.Limit
+	if limit <= 0 {
+		limit = 25
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	hasDates := opts.StartDate != nil || opts.EndDate != nil
+
 	// Build KQL $search terms for fields that don't work with $filter
 	var searchTerms []string
 	if opts.Search != "" {
@@ -80,22 +90,22 @@ func (c *GraphClient) ListMessages(opts ListMessagesOptions) ([]Message, error) 
 		searchTerms = append(searchTerms, fmt.Sprintf("hasattachment:%t", *opts.HasAttachments))
 	}
 
-	useSearch := len(searchTerms) > 0
-	if !useSearch {
-		params.Set("$orderby", "receivedDateTime desc")
+	hasSearch := len(searchTerms) > 0
+
+	// When both dates and search terms are present, the Graph API rejects the
+	// combination of $filter and $search. Send only $filter (dates) to the API
+	// and apply search criteria client-side with pagination.
+	if hasDates && hasSearch {
+		return c.listMessagesWithClientFilter(path, params, opts, limit)
 	}
 
-	limit := opts.Limit
-	if limit <= 0 {
-		limit = 25
-	}
-	if limit > 100 {
-		limit = 100
+	// Standard path: use $search or $filter (not both)
+	if !hasSearch {
+		params.Set("$orderby", "receivedDateTime desc")
 	}
 	params.Set("$top", fmt.Sprintf("%d", limit))
 
 	var filters []string
-
 	if opts.StartDate != nil {
 		filters = append(filters, fmt.Sprintf("receivedDateTime ge %s", opts.StartDate.Format(time.RFC3339)))
 	}
@@ -106,7 +116,7 @@ func (c *GraphClient) ListMessages(opts ListMessagesOptions) ([]Message, error) 
 		params.Set("$filter", strings.Join(filters, " and "))
 	}
 
-	if useSearch {
+	if hasSearch {
 		params.Set("$search", fmt.Sprintf(`"%s"`, strings.Join(searchTerms, " AND ")))
 	}
 
@@ -120,14 +130,71 @@ func (c *GraphClient) ListMessages(opts ListMessagesOptions) ([]Message, error) 
 		return nil, fmt.Errorf("parsing messages: %w", err)
 	}
 
-	// Client-side sort when server-side $orderby was omitted
-	if useSearch {
+	if hasSearch {
 		sort.Slice(resp.Value, func(i, j int) bool {
 			return resp.Value[i].ReceivedDateTime > resp.Value[j].ReceivedDateTime
 		})
 	}
 
 	return resp.Value, nil
+}
+
+const maxClientFilterPages = 10
+
+// listMessagesWithClientFilter sends only $filter (dates) to the API and applies
+// search criteria client-side. Paginates through results until enough matches
+// are found or the page cap is reached.
+func (c *GraphClient) listMessagesWithClientFilter(path string, params url.Values, opts ListMessagesOptions, limit int) ([]Message, error) {
+	filter := buildFilter(opts)
+
+	// Build date filter for $filter param
+	var dateFilters []string
+	if opts.StartDate != nil {
+		dateFilters = append(dateFilters, fmt.Sprintf("receivedDateTime ge %s", opts.StartDate.Format(time.RFC3339)))
+	}
+	if opts.EndDate != nil {
+		dateFilters = append(dateFilters, fmt.Sprintf("receivedDateTime le %s", opts.EndDate.Format(time.RFC3339)))
+	}
+	if len(dateFilters) > 0 {
+		params.Set("$filter", strings.Join(dateFilters, " and "))
+	}
+
+	params.Set("$orderby", "receivedDateTime desc")
+	params.Set("$top", "100") // max page size for overfetching
+
+	var matched []Message
+
+	data, err := c.do("GET", path, params, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for page := 0; page < maxClientFilterPages; page++ {
+		var resp listResponse[Message]
+		if err := json.Unmarshal(data, &resp); err != nil {
+			return nil, fmt.Errorf("parsing messages: %w", err)
+		}
+
+		for _, msg := range resp.Value {
+			if filter == nil || filter.matches(msg) {
+				matched = append(matched, msg)
+				if len(matched) >= limit {
+					return matched, nil
+				}
+			}
+		}
+
+		if resp.NextLink == "" {
+			break
+		}
+
+		data, err = c.doURL("GET", resp.NextLink, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return matched, nil
 }
 
 func (c *GraphClient) GetMessage(id string) (*Message, error) {

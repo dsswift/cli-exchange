@@ -117,5 +117,6 @@ type ScheduleInformation struct {
 
 // Response wrappers for paginated Graph API responses
 type listResponse[T any] struct {
-	Value []T `json:"value"`
+	Value    []T    `json:"value"`
+	NextLink string `json:"@odata.nextLink"`
 }
