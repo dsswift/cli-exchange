@@ -103,6 +103,12 @@ func run() int {
 		return cmdConfigAliasAdd(f)
 	case "config-alias-delete":
 		return cmdConfigAliasDelete(f)
+	case "config-allow-sender-list":
+		return cmdConfigAllowSenderList(f)
+	case "config-allow-sender-add":
+		return cmdConfigAllowSenderAdd(f)
+	case "config-allow-sender-delete":
+		return cmdConfigAllowSenderDelete(f)
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", f.command)
@@ -118,6 +124,10 @@ func configOverrides(f flags) config.Overrides {
 		Timezone: f.timezone,
 		Output:   f.output,
 	}
+}
+
+func newAuthenticator(cfg *config.ExchangeConfig) (*auth.Authenticator, error) {
+	return auth.New(cfg)
 }
 
 func newClient(f flags) (*graph.GraphClient, *tz.Service, error) {

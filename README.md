@@ -300,6 +300,35 @@ Delete a domain alias mapping.
 exchange config alias delete dcim.com
 ```
 
+### Send Recipient Whitelist
+
+The send recipient whitelist gates who can receive emails via `mail send` and `mail draft send`. The authenticated user's own email is always implicitly allowed. Drafts can always be created with any recipients.
+
+#### `exchange config allow-sender list`
+
+List allowed send recipients.
+
+```bash
+exchange config allow-sender list
+```
+
+#### `exchange config allow-sender add <email>`
+
+Add an allowed send recipient. Supports pipe syntax for multiple domains.
+
+```bash
+exchange config allow-sender add someone@example.com
+exchange config allow-sender add 'cfavero@dcim.com|dciartform.com'
+```
+
+#### `exchange config allow-sender delete <email>`
+
+Remove an allowed send recipient.
+
+```bash
+exchange config allow-sender delete someone@example.com
+```
+
 ## Agent Instructions
 
 Copy the following into your AI agent's system prompt or instructions file for optimal use of the `exchange` CLI.
@@ -314,6 +343,8 @@ Use the `exchange` CLI for all Exchange Online operations (mail, calendar, avail
 - Full email body: `mail show --ids <id>`
 - Read attachment contents: `mail attachment list --message-id <id> --include-content` (returns text inline)
 - Download attachments to disk: `mail show --ids <id>` to get attachment IDs, then `mail attachment download --message-id <id> --id <att-id> --dir /tmp`
+
+**Send recipient whitelist:** If `mail send` or `mail draft send` returns a whitelist error ("send blocked: recipient(s) not in allow list"), do NOT attempt to add the recipient to the whitelist or retry the send. Instead, create a draft (`mail draft create`) and notify the user that the email requires manual review before sending.
 
 ## Development
 

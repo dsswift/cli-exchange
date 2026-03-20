@@ -151,7 +151,7 @@ func TestHandleHelp_JSONOutput(t *testing.T) {
 	if !ok {
 		t.Fatal("expected commands array in JSON output")
 	}
-	if len(cmds) != 23 {
-		t.Errorf("expected 23 commands, got %d", len(cmds))
+	if len(cmds) != 26 {
+		t.Errorf("expected 26 commands, got %d", len(cmds))
 	}
 }

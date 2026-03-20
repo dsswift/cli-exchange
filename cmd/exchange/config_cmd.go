@@ -29,13 +29,26 @@ func cmdConfigShow(f flags) int {
 				fmt.Printf("  %-18s %s\n", domain+":", strings.Join(aliases, ", "))
 			}
 		}
+		if cfg.UserEmail != "" {
+			fmt.Printf("%-20s %s\n", "user-email:", cfg.UserEmail)
+		}
+		if len(cfg.AllowSendToRecipients) > 0 {
+			fmt.Printf("%-20s\n", "allow-send-to:")
+			for _, entry := range cfg.AllowSendToRecipients {
+				fmt.Printf("  %s\n", entry)
+			}
+		}
 	} else {
 		data := map[string]any{
-			"clientId":      cfg.ClientID,
-			"tenantId":      cfg.TenantID,
-			"timezone":      cfg.Timezone,
-			"output":        cfg.Output,
-			"domainAliases": cfg.DomainAliases,
+			"clientId":              cfg.ClientID,
+			"tenantId":             cfg.TenantID,
+			"timezone":             cfg.Timezone,
+			"output":               cfg.Output,
+			"domainAliases":        cfg.DomainAliases,
+			"allowSendToRecipients": cfg.AllowSendToRecipients,
+		}
+		if cfg.UserEmail != "" {
+			data["userEmail"] = cfg.UserEmail
 		}
 		if cfg.BusinessHours != nil {
 			data["businessHours"] = cfg.BusinessHours
@@ -215,6 +228,119 @@ func cmdConfigAliasDelete(f flags) int {
 		output.PrintJSON(map[string]any{
 			"deleted": true,
 			"domain":  domain,
+		})
+	}
+	return 0
+}
+
+func cmdConfigAllowSenderList(f flags) int {
+	cfg := config.LoadConfigFile()
+
+	if f.output == "table" {
+		if len(cfg.AllowSendToRecipients) == 0 {
+			fmt.Println("No allowed senders configured.")
+			return 0
+		}
+		for _, entry := range cfg.AllowSendToRecipients {
+			fmt.Println(entry)
+		}
+	} else {
+		list := cfg.AllowSendToRecipients
+		if list == nil {
+			list = []string{}
+		}
+		output.PrintJSON(map[string]any{
+			"allowSendToRecipients": list,
+		})
+	}
+	return 0
+}
+
+func cmdConfigAllowSenderAdd(f flags) int {
+	if f.id == "" {
+		fmt.Fprintf(os.Stderr, "Error: email address required\n")
+		return 1
+	}
+
+	entry := strings.ToLower(strings.TrimSpace(f.id))
+	if !strings.Contains(entry, "@") {
+		fmt.Fprintf(os.Stderr, "Error: entry must contain @ (e.g. user@example.com)\n")
+		return 1
+	}
+
+	cfg := config.LoadConfigFile()
+
+	// Dedup by exact string
+	for _, existing := range cfg.AllowSendToRecipients {
+		if existing == entry {
+			if f.output == "table" {
+				fmt.Printf("Already in allow list: %s\n", entry)
+			} else {
+				output.PrintJSON(map[string]any{
+					"added": false,
+					"entry": entry,
+				})
+			}
+			return 0
+		}
+	}
+
+	cfg.AllowSendToRecipients = append(cfg.AllowSendToRecipients, entry)
+
+	if err := config.SaveConfig(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		return 1
+	}
+
+	if f.output == "table" {
+		fmt.Printf("Added to allow list: %s\n", entry)
+	} else {
+		output.PrintJSON(map[string]any{
+			"added": true,
+			"entry": entry,
+		})
+	}
+	return 0
+}
+
+func cmdConfigAllowSenderDelete(f flags) int {
+	if f.id == "" {
+		fmt.Fprintf(os.Stderr, "Error: email address required\n")
+		return 1
+	}
+
+	entry := strings.ToLower(strings.TrimSpace(f.id))
+
+	cfg := config.LoadConfigFile()
+
+	found := false
+	var updated []string
+	for _, existing := range cfg.AllowSendToRecipients {
+		if existing == entry {
+			found = true
+			continue
+		}
+		updated = append(updated, existing)
+	}
+
+	if !found {
+		fmt.Fprintf(os.Stderr, "Error: %q not in allow list\n", entry)
+		return 1
+	}
+
+	cfg.AllowSendToRecipients = updated
+
+	if err := config.SaveConfig(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		return 1
+	}
+
+	if f.output == "table" {
+		fmt.Printf("Removed from allow list: %s\n", entry)
+	} else {
+		output.PrintJSON(map[string]any{
+			"deleted": true,
+			"entry":   entry,
 		})
 	}
 	return 0
