@@ -135,12 +135,12 @@ func parseFlags(args []string) (flags, error) {
 		if len(args) < 2 {
 			return f, fmt.Errorf("config requires a subcommand")
 		}
-		if args[1] == "--help" {
+		switch args[1] {
+		case "--help":
 			f.command = "config"
 			f.help = true
 			return f, nil
-		}
-		if args[1] == "alias" {
+		case "alias":
 			if len(args) < 3 {
 				return f, fmt.Errorf("config alias requires a verb")
 			}
@@ -151,7 +151,7 @@ func parseFlags(args []string) (flags, error) {
 			}
 			f.command = "config-alias-" + args[2]
 			i = 3
-		} else if args[1] == "allow-sender" {
+		case "allow-sender":
 			if len(args) < 3 {
 				return f, fmt.Errorf("config allow-sender requires a verb")
 			}
@@ -162,7 +162,7 @@ func parseFlags(args []string) (flags, error) {
 			}
 			f.command = "config-allow-sender-" + args[2]
 			i = 3
-		} else {
+		default:
 			f.command = "config-" + args[1]
 			i = 2
 		}
