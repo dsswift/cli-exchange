@@ -333,11 +333,13 @@ exchange config allow-sender delete someone@example.com
 
 Copy the following into your AI agent's system prompt or instructions file for optimal use of the `exchange` CLI.
 
----
+````markdown
+# Exchange CLI Reference
 
 Use the `exchange` CLI for all Exchange Online operations. Output is always JSON; never add `-o table` when parsing results programmatically.
 
-**Mail:**
+## Mail
+
 - `mail list [--folder <name>] [--sender <alias-or-addr>] [--subject <text>] [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--limit N] [--read] [--unread] [--has-attachments]`
 - `mail show --ids <id,...>` full body; OR `mail show --batch N [filter flags]` show N filtered emails with body (mutually exclusive)
 - `mail send --to <email> [--to ...] [--cc <email>] [--subject <str>] [--body <str>] [--body-type text|html] [--importance low|normal|high] [--attach <file>]`
@@ -349,22 +351,21 @@ Use the `exchange` CLI for all Exchange Online operations. Output is always JSON
 - `mail attachment list --message-id <id> [--include-content] [--name <substr>] [--no-inline]` -- `--include-content` returns decoded text inline
 - `mail attachment download --message-id <id> [--id <att-id>] [--dir <path>] [--name <substr>]`
 
-**Calendar:**
+## Calendar
+
 - `calendar event list [--calendar <id>] [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--limit N]`
 - `calendar event show <id>` positional arg
 - `calendar availability check --emails <email,...> [--start/--end YYYY-MM-DDTHH:MM:SS | --timespan Nh|Nd|Nw] [--interval N] [--business-hours HH:MM-HH:MM] [--include-weekends]`
 - `calendar list` list all calendars
 
-**Syntax notes:**
+## Syntax Notes
+
 - `--sender` accepts alias (`cfavero`) or address, never display names
 - Repeatable flags (`--to`, `--cc`, `--attach`): specify multiple times
 - Comma-separated: `--ids`, `--emails`
 - Boolean flags take no value: `--read`, `--unread`, `--has-attachments`, `--include-content`, `--no-inline`, `--include-weekends`
 - Dates: `YYYY-MM-DD` for mail/calendar filters, `YYYY-MM-DDTHH:MM:SS` for availability start/end
-
-**Send whitelist:** If `mail send` or `mail draft send` returns a whitelist error ("send blocked: recipient(s) not in allow list"), do NOT retry or modify the whitelist. Create a draft (`mail draft create`) and tell the user it needs manual review.
-
-**Config:** Do not modify Exchange configuration programmatically. If a config change is needed (timezone, aliases, whitelist entries), tell the user to run the appropriate `exchange config` command themselves.
+````
 
 ## Development
 
