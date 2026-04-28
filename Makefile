@@ -2,22 +2,29 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 BUILD_TIME := $(shell date +%Y%m%d-%H%M)
 LDFLAGS := -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 
-.PHONY: build build-all build-linux build-darwin build-windows test lint install clean tidy hooks help
+.PHONY: build build-mcp build-all build-linux build-darwin build-windows test lint install configure-claude clean tidy hooks help
 
 build: ## Build for current platform
 	go build $(LDFLAGS) -o bin/exchange ./cmd/exchange
+
+build-mcp: ## Build MCP server
+	go build $(LDFLAGS) -o bin/exchange-mcp ./cmd/exchange-mcp
 
 build-all: build-linux build-darwin build-windows ## Build for all platforms
 
 build-linux: ## Build for linux/amd64
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/exchange-linux-amd64 ./cmd/exchange
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/exchange-mcp-linux-amd64 ./cmd/exchange-mcp
 
 build-darwin: ## Build for darwin (amd64 + arm64)
 	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/exchange-darwin-amd64 ./cmd/exchange
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/exchange-mcp-darwin-amd64 ./cmd/exchange-mcp
 	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/exchange-darwin-arm64 ./cmd/exchange
+	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/exchange-mcp-darwin-arm64 ./cmd/exchange-mcp
 
 build-windows: ## Build for windows/amd64
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/exchange-windows-amd64.exe ./cmd/exchange
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/exchange-mcp-windows-amd64.exe ./cmd/exchange-mcp
 
 test: ## Run tests with race detection and coverage
 	go test -race -coverprofile=coverage.out ./...
@@ -25,9 +32,13 @@ test: ## Run tests with race detection and coverage
 lint: ## Run linter
 	$(shell go env GOPATH)/bin/golangci-lint run
 
-install: build ## Install to ~/.local/bin
+install: build build-mcp ## Install CLI + MCP server to ~/.local/bin
 	mkdir -p ~/.local/bin
 	cp bin/exchange ~/.local/bin/exchange
+	cp bin/exchange-mcp ~/.local/bin/exchange-mcp
+
+configure-claude: install ## Register MCP server in Claude settings
+	exchange-mcp --setup
 
 clean: ## Remove build artifacts
 	rm -rf bin/ coverage.out

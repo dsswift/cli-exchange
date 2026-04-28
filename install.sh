@@ -42,66 +42,70 @@ if [ -z "$TAG" ]; then
     exit 1
 fi
 
-# Build download URL
-EXT=""
-if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
-ASSET="${BINARY}-${GOOS}-${GOARCH}${EXT}"
-URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET}"
-
 # Set install directory
+EXT=""
 if [ "$GOOS" = "windows" ]; then
+    EXT=".exe"
     INSTALL_DIR="${LOCALAPPDATA:-$HOME/AppData/Local}/Programs/exchange"
 else
     INSTALL_DIR="${HOME}/.local/bin"
 fi
 mkdir -p "$INSTALL_DIR"
 
-DEST="${INSTALL_DIR}/${BINARY}${EXT}"
-
-echo "Installing ${BINARY} ${TAG} (${GOOS}/${GOARCH})..."
-
-# Download
-TMPFILE=$(mktemp)
-trap 'rm -f "$TMPFILE"' EXIT
-if command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$TMPFILE" "$URL"
-else
-    wget -qO "$TMPFILE" "$URL"
-fi
-
-# Verify checksum
-CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${TAG}/checksums.txt"
+# Download checksums once
 CHECKSUMS=$(mktemp)
-trap 'rm -f "$TMPFILE" "$CHECKSUMS"' EXIT
+CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${TAG}/checksums.txt"
 if command -v curl >/dev/null 2>&1; then
     curl -fsSL -o "$CHECKSUMS" "$CHECKSUMS_URL"
 else
     wget -qO "$CHECKSUMS" "$CHECKSUMS_URL"
 fi
 
-EXPECTED=$(grep "$ASSET" "$CHECKSUMS" | awk '{print $1}')
-if [ -n "$EXPECTED" ]; then
-    if command -v sha256sum >/dev/null 2>&1; then
-        ACTUAL=$(sha256sum "$TMPFILE" | awk '{print $1}')
-    elif command -v shasum >/dev/null 2>&1; then
-        ACTUAL=$(shasum -a 256 "$TMPFILE" | awk '{print $1}')
+download_binary() {
+    NAME="$1"
+    ASSET="${NAME}-${GOOS}-${GOARCH}${EXT}"
+    URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET}"
+    DEST="${INSTALL_DIR}/${NAME}${EXT}"
+
+    echo "Installing ${NAME} ${TAG} (${GOOS}/${GOARCH})..."
+
+    TMPFILE=$(mktemp)
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL -o "$TMPFILE" "$URL"
     else
-        ACTUAL=""
+        wget -qO "$TMPFILE" "$URL"
     fi
 
-    if [ -n "$ACTUAL" ] && [ "$ACTUAL" != "$EXPECTED" ]; then
-        echo "Checksum mismatch" >&2
-        echo "  expected: $EXPECTED" >&2
-        echo "  got:      $ACTUAL" >&2
-        exit 1
+    # Verify checksum
+    EXPECTED=$(grep "$ASSET" "$CHECKSUMS" | awk '{print $1}')
+    if [ -n "$EXPECTED" ]; then
+        if command -v sha256sum >/dev/null 2>&1; then
+            ACTUAL=$(sha256sum "$TMPFILE" | awk '{print $1}')
+        elif command -v shasum >/dev/null 2>&1; then
+            ACTUAL=$(shasum -a 256 "$TMPFILE" | awk '{print $1}')
+        else
+            ACTUAL=""
+        fi
+
+        if [ -n "$ACTUAL" ] && [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "Checksum mismatch for ${ASSET}" >&2
+            echo "  expected: $EXPECTED" >&2
+            echo "  got:      $ACTUAL" >&2
+            rm -f "$TMPFILE"
+            exit 1
+        fi
     fi
-fi
 
-# Install
-mv "$TMPFILE" "$DEST"
-chmod +x "$DEST"
+    mv "$TMPFILE" "$DEST"
+    chmod +x "$DEST"
+    echo "  Installed to $DEST"
+}
 
-echo "Installed to $DEST"
+# Download both binaries
+download_binary "$BINARY"
+download_binary "${BINARY}-mcp"
+
+rm -f "$CHECKSUMS"
 
 # Check PATH
 case ":$PATH:" in
@@ -112,3 +116,13 @@ case ":$PATH:" in
         echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
         ;;
 esac
+
+# Offer Claude Code setup
+if [ -f "${HOME}/.claude.json" ]; then
+    echo ""
+    printf "Claude Code detected. Register exchange MCP server? [y/N] "
+    read -r REPLY
+    if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+        "${INSTALL_DIR}/${BINARY}-mcp${EXT}" --setup
+    fi
+fi
