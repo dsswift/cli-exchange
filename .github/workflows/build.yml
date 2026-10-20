@@ -1,0 +1,80 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to build
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ inputs.tag }}
+        run: |
+          BUILD_TIME=$(date +%Y%m%d-%H%M)
+          EXT=""
+          if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
+          go build -ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME}" \
+            -o "exchange-${GOOS}-${GOARCH}${EXT}" ./cmd/exchange
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: exchange-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: exchange-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: sha256sum exchange-* > checksums.txt
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: |
+            exchange-*
+            checksums.txt

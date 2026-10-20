@@ -48,3 +48,9 @@ Default output format is JSON. Use `-o table` for human-readable output.
 - `EXCHANGE_OUTPUT` -- output format, defaults to "json"
 - `EXCHANGE_TIMEOUT` -- HTTP timeout in seconds, defaults to 30
 - `EXCHANGE_TOKEN_CACHE` -- token cache file path
+
+## Releases
+
+Commit on `main` with conventional commits (`feat`, `fix`, `chore`, `docs`) and land with `release-damnit land`.
+CI versions every `feat` and `fix` since the last release, tags it, and builds the binaries for the tag.
+Never edit `VERSION`, `release-please-manifest.json`, or `CHANGELOG.md` by hand.

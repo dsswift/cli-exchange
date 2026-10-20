@@ -2,67 +2,41 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  build:
+  version:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goos: darwin
-            goarch: amd64
-          - goos: darwin
-            goarch: arm64
-          - goos: linux
-            goarch: amd64
-          - goos: windows
-            goarch: amd64
-
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
     steps:
+      # The branch tip, not the pushed commit: a run queued behind another
+      # release must see that release's version commit and tags.
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-
-      - name: Build
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          VERSION=${GITHUB_REF_NAME}
-          BUILD_TIME=$(date +%Y%m%d-%H%M)
-          EXT=""
-          if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
-          go build -ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME}" \
-            -o exchange-${GOOS}-${GOARCH}${EXT} ./cmd/exchange
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - id: release
+        uses: dsswift/release-damnit@v1.4.0
         with:
-          name: exchange-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: exchange-*
+          since-last-release: 'true'
+          publish: 'true'
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-
-      - name: Generate checksums
-        run: sha256sum exchange-* > checksums.txt
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            exchange-*
-            checksums.txt
-          generate_release_notes: true
+  build:
+    needs: version
+    if: needs.version.outputs.released == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ needs.version.outputs.tag }}
+    secrets: inherit
