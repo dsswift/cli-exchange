@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/dsswift/cli-exchange/compare/v1.2.0...v1.3.0) (2026-10-20)
+
+### Features
+
+* add mcp server with exchange tools integration ([c7da23a](https://github.com/dsswift/cli-exchange/commit/c7da23abdf21a6797d6a0c85ee5c356af774dd84))
+
 ## [1.2.0](https://github.com/dsswift/cli-exchange/compare/v1.1.0...v1.2.0) (2026-03-20)
 
 
