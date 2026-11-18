@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.1](https://github.com/dsswift/cli-exchange/compare/v1.4.0...v1.4.1) (2026-11-18)
+
+### Bug Fixes
+
+* **cli-exchange:** build with go 1.26.11 for net/http fix ([a052cee](https://github.com/dsswift/cli-exchange/commit/a052cee05346e5bf8efb9267f7c4340fe189d896))
+
 ## [1.4.0](https://github.com/dsswift/cli-exchange/compare/v1.3.1...v1.4.0) (2026-11-18)
 
 ### Features
