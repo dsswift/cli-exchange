@@ -1,6 +1,6 @@
 module github.com/dsswift/cli-exchange
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2
