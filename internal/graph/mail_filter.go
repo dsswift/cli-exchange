@@ -33,7 +33,7 @@ func buildFilter(opts ListMessagesOptions) *messageFilter {
 
 // parseSenderTerms extracts sender match terms from the Search field.
 // The Search field may be:
-//   - A bare name like "cfavero" (no colon) -> match as name fragment
+//   - A bare name like "dee" (no colon) -> match as name fragment
 //   - A KQL string like "from:addr1 OR from:addr2" -> extract addresses
 func parseSenderTerms(search string) []string {
 	if !strings.Contains(search, ":") {

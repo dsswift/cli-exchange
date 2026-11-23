@@ -71,15 +71,15 @@ exchange config set timezone America/Chicago
 
 ### Domain aliases
 
-Domain aliases expand `--sender` filters to match multiple domains for the same user. Useful when an organization uses proxy or alias domains (e.g., `dcim.com` and `dciartform.com` both route to the same mailbox).
+Domain aliases expand `--sender` filters to match multiple domains for the same user. Useful when an organization uses proxy or alias domains (e.g., `example.com` and `example.org` both route to the same mailbox).
 
 ```bash
 exchange config alias list
-exchange config alias add dcim.com 'dcim.com|dciartform.com'
-exchange config alias delete dcim.com
+exchange config alias add example.com 'example.com|example.org'
+exchange config alias delete example.com
 ```
 
-With the alias above, `--sender cfavero@dcim.com` automatically expands to match both `cfavero@dcim.com` and `cfavero@dciartform.com`.
+With the alias above, `--sender dee@example.com` automatically expands to match both `dee@example.com` and `dee@example.org`.
 
 ## Global Options
 
@@ -147,16 +147,16 @@ List or search emails.
 
 | Input | Strategy | Example |
 |-------|----------|---------|
-| No `@` (name only) | `$search` with `from:` query | `--sender cfavero` |
-| With `@`, single domain | `$filter` with exact match | `--sender cfavero@dcim.com` |
-| With `@`, pipe syntax | `$filter` with multiple exact matches | `--sender 'cfavero@dcim.com\|dciartform.com'` |
-| With `@`, domain alias configured | `$filter` with alias-expanded matches | `--sender cfavero@dcim.com` (auto-expands) |
+| No `@` (name only) | `$search` with `from:` query | `--sender dee` |
+| With `@`, single domain | `$filter` with exact match | `--sender dee@example.com` |
+| With `@`, pipe syntax | `$filter` with multiple exact matches | `--sender 'dee@example.com\|example.org'` |
+| With `@`, domain alias configured | `$filter` with alias-expanded matches | `--sender dee@example.com` (auto-expands) |
 
 ```bash
 exchange mail list
-exchange mail list --sender cfavero --limit 5
-exchange mail list --sender cfavero@dcim.com
-exchange mail list --sender 'cfavero@dcim.com|dciartform.com'
+exchange mail list --sender dee --limit 5
+exchange mail list --sender dee@example.com
+exchange mail list --sender 'dee@example.com|example.org'
 exchange mail list --folder inbox --unread --start 2026-03-01
 exchange mail list --subject "quarterly report" -o table
 ```
@@ -299,7 +299,7 @@ exchange config alias list
 Add a domain alias mapping. Aliases are pipe-separated.
 
 ```bash
-exchange config alias add dcim.com 'dcim.com|dciartform.com'
+exchange config alias add example.com 'example.com|example.org'
 ```
 
 #### `exchange config alias delete <domain>`
@@ -307,7 +307,7 @@ exchange config alias add dcim.com 'dcim.com|dciartform.com'
 Delete a domain alias mapping.
 
 ```bash
-exchange config alias delete dcim.com
+exchange config alias delete example.com
 ```
 
 ### Send Recipient Whitelist
@@ -328,7 +328,7 @@ Add an allowed send recipient. Supports pipe syntax for multiple domains.
 
 ```bash
 exchange config allow-sender add someone@example.com
-exchange config allow-sender add 'cfavero@dcim.com|dciartform.com'
+exchange config allow-sender add 'dee@example.com|example.org'
 ```
 
 #### `exchange config allow-sender delete <email>`

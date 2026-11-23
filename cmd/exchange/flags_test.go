@@ -93,8 +93,8 @@ func TestParseFlags_ConfigCommands(t *testing.T) {
 		{[]string{"config", "show"}, "config-show"},
 		{[]string{"config", "set", "output", "table"}, "config-set"},
 		{[]string{"config", "alias", "list"}, "config-alias-list"},
-		{[]string{"config", "alias", "add", "dcim.com", "dcim.com|dciartform.com"}, "config-alias-add"},
-		{[]string{"config", "alias", "delete", "dcim.com"}, "config-alias-delete"},
+		{[]string{"config", "alias", "add", "example.com", "example.com|example.org"}, "config-alias-add"},
+		{[]string{"config", "alias", "delete", "example.com"}, "config-alias-delete"},
 	}
 
 	for _, tt := range tests {
@@ -423,45 +423,45 @@ func TestParseFlags_ConfigOverridesEqualsSyntax(t *testing.T) {
 }
 
 func TestExpandSender_NoAt(t *testing.T) {
-	result := expandSender("cfavero", nil)
+	result := expandSender("dee", nil)
 	if result != nil {
 		t.Errorf("expected nil for no-@ sender, got %v", result)
 	}
 }
 
 func TestExpandSender_SingleAddress(t *testing.T) {
-	result := expandSender("cfavero@dcim.com", nil)
-	if len(result) != 1 || result[0] != "cfavero@dcim.com" {
-		t.Errorf("expected [cfavero@dcim.com], got %v", result)
+	result := expandSender("dee@example.com", nil)
+	if len(result) != 1 || result[0] != "dee@example.com" {
+		t.Errorf("expected [dee@example.com], got %v", result)
 	}
 }
 
 func TestExpandSender_PipeSyntax(t *testing.T) {
-	result := expandSender("cfavero@dcim.com|dciartform.com", nil)
+	result := expandSender("dee@example.com|example.org", nil)
 	if len(result) != 2 {
 		t.Fatalf("expected 2 addresses, got %d", len(result))
 	}
-	if result[0] != "cfavero@dcim.com" {
-		t.Errorf("expected cfavero@dcim.com, got %s", result[0])
+	if result[0] != "dee@example.com" {
+		t.Errorf("expected dee@example.com, got %s", result[0])
 	}
-	if result[1] != "cfavero@dciartform.com" {
-		t.Errorf("expected cfavero@dciartform.com, got %s", result[1])
+	if result[1] != "dee@example.org" {
+		t.Errorf("expected dee@example.org, got %s", result[1])
 	}
 }
 
 func TestExpandSender_DomainAlias(t *testing.T) {
 	aliases := map[string][]string{
-		"dcim.com": {"dcim.com", "dciartform.com"},
+		"example.com": {"example.com", "example.org"},
 	}
-	result := expandSender("cfavero@dcim.com", aliases)
+	result := expandSender("dee@example.com", aliases)
 	if len(result) != 2 {
 		t.Fatalf("expected 2 addresses, got %d", len(result))
 	}
-	if result[0] != "cfavero@dcim.com" {
-		t.Errorf("expected cfavero@dcim.com, got %s", result[0])
+	if result[0] != "dee@example.com" {
+		t.Errorf("expected dee@example.com, got %s", result[0])
 	}
-	if result[1] != "cfavero@dciartform.com" {
-		t.Errorf("expected cfavero@dciartform.com, got %s", result[1])
+	if result[1] != "dee@example.org" {
+		t.Errorf("expected dee@example.org, got %s", result[1])
 	}
 }
 
@@ -513,9 +513,9 @@ func TestExpandSender_NoMatchingAlias(t *testing.T) {
 	aliases := map[string][]string{
 		"other.com": {"other.com", "other2.com"},
 	}
-	result := expandSender("cfavero@dcim.com", aliases)
-	if len(result) != 1 || result[0] != "cfavero@dcim.com" {
-		t.Errorf("expected [cfavero@dcim.com], got %v", result)
+	result := expandSender("dee@example.com", aliases)
+	if len(result) != 1 || result[0] != "dee@example.com" {
+		t.Errorf("expected [dee@example.com], got %v", result)
 	}
 }
 

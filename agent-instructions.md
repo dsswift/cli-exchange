@@ -24,7 +24,7 @@ Use the `exchange` CLI for all Exchange Online operations. Output is always JSON
 
 ## Syntax Notes
 
-- `--sender` accepts alias (`cfavero`) or address, never display names
+- `--sender` accepts alias (`dee`) or address, never display names
 - Repeatable flags (`--to`, `--cc`, `--attach`): specify multiple times
 - Comma-separated: `--ids`, `--emails`
 - Boolean flags take no value: `--read`, `--unread`, `--has-attachments`, `--include-content`, `--no-inline`, `--include-weekends`

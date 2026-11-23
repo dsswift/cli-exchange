@@ -75,24 +75,24 @@ func TestNormalizeEmailWithAliases_NoAliases(t *testing.T) {
 func TestNormalizeEmailWithAliases_ResolvesAlias(t *testing.T) {
 	cfg := &ExchangeConfig{
 		DomainAliases: map[string][]string{
-			"dcim.com": {"dcim.com", "dciartform.com"},
+			"example.com": {"example.com", "example.org"},
 		},
 	}
-	got := cfg.NormalizeEmailWithAliases("cfavero@dciartform.com")
-	if got != "cfavero@dcim.com" {
-		t.Errorf("got %q, want %q", got, "cfavero@dcim.com")
+	got := cfg.NormalizeEmailWithAliases("dee@example.org")
+	if got != "dee@example.com" {
+		t.Errorf("got %q, want %q", got, "dee@example.com")
 	}
 }
 
 func TestNormalizeEmailWithAliases_PrimaryUnchanged(t *testing.T) {
 	cfg := &ExchangeConfig{
 		DomainAliases: map[string][]string{
-			"dcim.com": {"dcim.com", "dciartform.com"},
+			"example.com": {"example.com", "example.org"},
 		},
 	}
-	got := cfg.NormalizeEmailWithAliases("cfavero@dcim.com")
-	if got != "cfavero@dcim.com" {
-		t.Errorf("got %q, want %q", got, "cfavero@dcim.com")
+	got := cfg.NormalizeEmailWithAliases("dee@example.com")
+	if got != "dee@example.com" {
+		t.Errorf("got %q, want %q", got, "dee@example.com")
 	}
 }
 
@@ -106,9 +106,9 @@ func TestNormalizeEmailWithAliases_NoAtSign(t *testing.T) {
 
 func TestValidateSendRecipients_SelfAlwaysAllowed(t *testing.T) {
 	cfg := &ExchangeConfig{
-		UserEmail: "josh@example.com",
+		UserEmail: "ada@example.com",
 	}
-	err := cfg.ValidateSendRecipients([]string{"josh@example.com"})
+	err := cfg.ValidateSendRecipients([]string{"ada@example.com"})
 	if err != nil {
 		t.Errorf("self should be allowed: %v", err)
 	}
@@ -116,13 +116,13 @@ func TestValidateSendRecipients_SelfAlwaysAllowed(t *testing.T) {
 
 func TestValidateSendRecipients_SelfWithAlias(t *testing.T) {
 	cfg := &ExchangeConfig{
-		UserEmail: "josh@dciartform.com",
+		UserEmail: "ada@example.org",
 		DomainAliases: map[string][]string{
-			"dcim.com": {"dcim.com", "dciartform.com"},
+			"example.com": {"example.com", "example.org"},
 		},
 	}
-	// Self address resolves through alias to dcim.com
-	err := cfg.ValidateSendRecipients([]string{"josh@dcim.com"})
+	// Self address resolves through alias to example.com
+	err := cfg.ValidateSendRecipients([]string{"ada@example.com"})
 	if err != nil {
 		t.Errorf("self via alias should be allowed: %v", err)
 	}
@@ -153,26 +153,26 @@ func TestValidateSendRecipients_Blocked(t *testing.T) {
 
 func TestValidateSendRecipients_PipeSyntax(t *testing.T) {
 	cfg := &ExchangeConfig{
-		AllowSendToRecipients: []string{"cfavero@dcim.com|dciartform.com"},
+		AllowSendToRecipients: []string{"dee@example.com|example.org"},
 	}
 	// Both expanded addresses should be allowed
-	if err := cfg.ValidateSendRecipients([]string{"cfavero@dcim.com"}); err != nil {
+	if err := cfg.ValidateSendRecipients([]string{"dee@example.com"}); err != nil {
 		t.Errorf("pipe-expanded address should be allowed: %v", err)
 	}
-	if err := cfg.ValidateSendRecipients([]string{"cfavero@dciartform.com"}); err != nil {
+	if err := cfg.ValidateSendRecipients([]string{"dee@example.org"}); err != nil {
 		t.Errorf("pipe-expanded address should be allowed: %v", err)
 	}
 }
 
 func TestValidateSendRecipients_AliasResolution(t *testing.T) {
 	cfg := &ExchangeConfig{
-		AllowSendToRecipients: []string{"cfavero@dcim.com"},
+		AllowSendToRecipients: []string{"dee@example.com"},
 		DomainAliases: map[string][]string{
-			"dcim.com": {"dcim.com", "dciartform.com"},
+			"example.com": {"example.com", "example.org"},
 		},
 	}
 	// Sending to alias domain should resolve and match
-	err := cfg.ValidateSendRecipients([]string{"cfavero@dciartform.com"})
+	err := cfg.ValidateSendRecipients([]string{"dee@example.org"})
 	if err != nil {
 		t.Errorf("alias-resolved recipient should be allowed: %v", err)
 	}
@@ -193,10 +193,10 @@ func TestValidateSendRecipients_EmptyUserEmail(t *testing.T) {
 
 func TestValidateSendRecipients_MixedAllowedAndBlocked(t *testing.T) {
 	cfg := &ExchangeConfig{
-		UserEmail:             "josh@example.com",
+		UserEmail:             "ada@example.com",
 		AllowSendToRecipients: []string{"alice@example.com"},
 	}
-	err := cfg.ValidateSendRecipients([]string{"josh@example.com", "alice@example.com", "bob@example.com"})
+	err := cfg.ValidateSendRecipients([]string{"ada@example.com", "alice@example.com", "bob@example.com"})
 	if err == nil {
 		t.Fatal("expected error for mixed recipients")
 	}

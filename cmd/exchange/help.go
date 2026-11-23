@@ -316,10 +316,10 @@ var commands = map[string]CommandHelp{
 		Description: "Add a domain alias",
 		Positional: []FlagHelp{
 			{Name: "<domain>", Type: "string", Required: true, Description: "Primary domain"},
-			{Name: "<aliases>", Type: "string", Required: true, Description: "Pipe-separated alias domains (e.g. dcim.com|dciartform.com)"},
+			{Name: "<aliases>", Type: "string", Required: true, Description: "Pipe-separated alias domains (e.g. example.com|example.org)"},
 		},
 		Examples: []string{
-			"exchange config alias add dcim.com \"dcim.com|dciartform.com\"",
+			"exchange config alias add example.com \"example.com|example.org\"",
 		},
 	},
 	"config-alias-delete": {
@@ -329,7 +329,7 @@ var commands = map[string]CommandHelp{
 			{Name: "<domain>", Type: "string", Required: true, Description: "Domain to remove"},
 		},
 		Examples: []string{
-			"exchange config alias delete dcim.com",
+			"exchange config alias delete example.com",
 		},
 	},
 	"config-allow-sender-list": {
@@ -345,7 +345,7 @@ var commands = map[string]CommandHelp{
 		},
 		Examples: []string{
 			"exchange config allow-sender add someone@example.com",
-			"exchange config allow-sender add 'cfavero@dcim.com|dciartform.com'",
+			"exchange config allow-sender add 'dee@example.com|example.org'",
 		},
 	},
 	"config-allow-sender-delete": {
