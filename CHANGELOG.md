@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.2](https://github.com/dsswift/cli-exchange/compare/v1.4.1...v1.4.2) (2026-11-23)
+
+### Bug Fixes
+
+* **cli-exchange:** remove estate names from examples ([2563325](https://github.com/dsswift/cli-exchange/commit/2563325c4c9e064698049ed3ca519f3e55729807))
+
 ## [1.4.1](https://github.com/dsswift/cli-exchange/compare/v1.4.0...v1.4.1) (2026-11-18)
 
 ### Bug Fixes
