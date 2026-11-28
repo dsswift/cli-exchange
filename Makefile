@@ -2,7 +2,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 BUILD_TIME := $(shell date +%Y%m%d-%H%M)
 LDFLAGS := -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)"
 
-.PHONY: build build-mcp build-all build-linux build-darwin build-windows test lint install configure-claude clean tidy hooks help
+.PHONY: build build-mcp build-all build-linux build-darwin build-windows test lint check land install configure-claude clean tidy hooks help
 
 build: ## Build for current platform
 	go build $(LDFLAGS) -o bin/exchange ./cmd/exchange
@@ -31,6 +31,13 @@ test: ## Run tests with race detection and coverage
 
 lint: ## Run linter
 	$(shell go env GOPATH)/bin/golangci-lint run
+
+check: lint test ## Run lint and tests
+
+# Lands main: release-damnit land runs the config's check (make check) on
+# exactly what lands and signs its proof, which the release verifies.
+land: ## Land on main with a signed landing proof
+	release-damnit land $(BRANCH)
 
 install: build build-mcp ## Install CLI + MCP server to ~/.local/bin
 	mkdir -p ~/.local/bin

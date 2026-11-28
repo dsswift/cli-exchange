@@ -8,6 +8,7 @@ Go CLI for Microsoft Exchange Online (mail, calendar) via Microsoft Graph API.
 make build          # build bin/exchange
 make test           # go test -race -coverprofile=coverage.out ./...
 make lint           # golangci-lint run
+make check          # lint + test
 make install        # build + copy to ~/.local/bin/exchange
 ```
 
@@ -51,6 +52,6 @@ Default output format is JSON. Use `-o table` for human-readable output.
 
 ## Releases
 
-Commit on `main` with conventional commits (`feat`, `fix`, `chore`, `docs`) and land with `release-damnit land`.
+Commit on `main` with conventional commits (`feat`, `fix`, `chore`, `docs`) and land with `make land`: it runs the config's check (`make check`) on exactly what lands and signs a landing proof the release verifies.
 CI versions every `feat` and `fix` since the last release, tags it, and builds the binaries for the tag.
 Never edit `VERSION`, `release-please-manifest.json`, or `CHANGELOG.md` by hand.
